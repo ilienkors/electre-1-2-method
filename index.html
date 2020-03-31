@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electre 1, 2</title>
+</head>
+
+<body>
+    <button onclick="doTask()">Розв'язати</button>
+    <script>
+        const createTable = (h2text, tableName, empty = true, matrix = []) => {
+            if (document.getElementById(tableName))
+                document.getElementById(tableName).remove();
+            if (empty == true) {
+                for (let i = 0; i < 7; i++) {
+                    matrix.push([])
+                    for (let j = 0; j < 5; j++) {
+                        matrix[i].push(2);
+                    }
+                }
+            }
+
+            const body = document.getElementsByTagName('body')[0];
+            const div = document.createElement('div');
+            div.id = tableName;
+            let matrixTable = document.createElement('table');
+            matrixTable.style.width = '100%';
+            let tbdy = document.createElement('tbody');
+            for (let i = 0; i < 7; i++) {
+                let tr = document.createElement('tr');
+                for (j = 0; j < 5; j++) {
+                    let td = document.createElement('td');
+                    td.innerHTML = '<input type=\'number\' value=\'' + matrix[i][j] + '\' id=\'' + tableName + i + '' + j + '\'>';
+                    tr.appendChild(td);
+                }
+                tbdy.appendChild(tr);
+            }
+            matrixTable.appendChild(tbdy);
+            let h2 = document.createElement('h2');
+            h2.innerHTML = h2text;
+            div.appendChild(h2);
+            div.appendChild(matrixTable);
+            div.appendChild(document.createElement('hr'));
+            body.appendChild(div);
+        }
+
+        const weightingFactors = (weights) => {
+            const body = document.getElementsByTagName('body')[0];
+            let matrixTable = document.createElement('table');
+            matrixTable.style.width = '100%';
+            let tbdy = document.createElement('tbody');
+            let tr = document.createElement('tr');
+            for (i = 0; i < 5; i++) {
+                let td = document.createElement('td');
+                td.innerHTML = '<input type=\'number\' value=\''+ weights[i] +'\' id=\'w' + i + '\'>';
+                tr.appendChild(td);
+            }
+            tbdy.appendChild(tr);
+            matrixTable.appendChild(tbdy);
+            let h2 = document.createElement('h2');
+            h2.innerHTML = 'Вагові коефіцієнти';
+            body.appendChild(h2);
+            body.appendChild(matrixTable);
+            body.appendChild(document.createElement('hr'));
+        }
+
+        const readTask = () => {
+            let matrix = [], weights = [];
+            for (let i = 0; i < 7; i++) {
+                matrix.push([]);
+                if (i < 5) weights.push(parseFloat(document.getElementById('w' + i).value));
+                for (let j = 0; j < 5; j++) {
+                    matrix[i].push(parseFloat(document.getElementById('matrix' + i + '' + j).value))
+                }
+            }
+
+            return {
+                matrix,
+                weights
+            };
+        }
+
+        const doTask = () => {
+            const data = readTask();
+            const matrix = data['matrix'];
+            const w = data['weights'];
+            let matrixEletreOne = [], matrixEletreTwo = [], matrixDisagreement = [];
+
+            const electre = (ax1, ax2, w) => {
+                let kPlus = 0, kEqual = 0, kMinus = 0, wSum = 0;
+                let kMinusArr = [];
+
+                for (let i = 0; i < ax1.length; i++) {
+                    wSum += w[i];
+                    if (ax1[i] > ax2[i]) kPlus += w[i];
+                    if (ax1[i] == ax2[i]) kEqual += w[i];
+                    if (ax1[i] < ax2[i]) {
+                        kMinus += w[i];
+                        kMinusArr.push(i);
+                    }
+                }
+
+                return {
+                    electreOne: (kPlus + kEqual) / wSum,
+                    electreTwo: kPlus / kMinus,
+                    disagreement: (() => {
+                        let numerator = 0;
+                        let denominator = 0;
+
+                        if (kMinusArr.length == 0) return 0;
+
+                        kMinusArr.forEach(index => {
+                            let answer = w[index] * Math.abs(ax1[index] - ax2[index]);
+                            numerator = answer > numerator ? answer : numerator;
+                        })
+
+                        for (let i = 0; i < ax1.length; i++) {
+                            let answer = w[i] * Math.abs(ax1[i] - ax2[i]);
+                            denominator = answer > denominator ? answer : denominator;
+                        }
+
+                        return numerator / denominator;
+                    })()
+                };
+
+
+            }
+
+            for (let i = 0; i < matrix.length; i++) {
+                matrixEletreOne.push([]);
+                matrixEletreTwo.push([]);
+                matrixDisagreement.push([]);
+
+                for (let j = 0; j < matrix.length; j++) {
+                    if (i != j) {
+                        matrixEletreOne[i].push(electre(matrix[i], matrix[j], w)['electreOne']);
+                        matrixEletreTwo[i].push(electre(matrix[i], matrix[j], w)['electreTwo']);
+                        matrixDisagreement[i].push(electre(matrix[i], matrix[j], w)['disagreement']);
+                    } else {
+                        matrixEletreOne[i].push(0);
+                        matrixEletreTwo[i].push(0);
+                        matrixDisagreement[i].push(0)
+                    }
+                }
+
+            }
+
+            createTable('Electre 1', 'electre1', false, matrixEletreOne);
+            createTable('Electre 2', 'electre2', false, matrixEletreTwo);
+            createTable('Неузгодження', 'disagreement', false, matrixDisagreement);
+        }
+
+        const startMatrix = [
+            [8, 5, 4, 5, 4],
+            [3, 1, 2, 7, 9],
+            [1, 2, 4, 8, 5],
+            [5, 6, 5, 3, 2],
+            [2, 1, 8, 4, 5],
+            [7, 9, 1, 8, 1],
+            [2, 5, 4, 1, 8]
+        ];
+
+        const startWeights = [2, 3, 1, 3, 4];
+
+        createTable('Задана матриця', 'matrix', false, startMatrix);
+        weightingFactors(startWeights);
+
+        
+    </script>
+</body>
+
+</html>

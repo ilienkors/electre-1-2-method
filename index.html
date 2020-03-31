@@ -9,6 +9,14 @@
 
 <body>
     <button onclick="doTask()">Розв'язати</button>
+    <label for="c1">c1</label>
+    <input type="number" id='c1' value="1.4">
+    <label for="d1">d1</label>
+    <input type="number" id='d1' value="0.6">
+    <label for="c2">c2</label>
+    <input type="number" id='c2' value="0.9">
+    <label for="d2">d2</label>
+    <input type="number" id='d2' value="0.8">
     <script>
         const createTable = (h2text, tableName, empty = true, matrix = []) => {
             if (document.getElementById(tableName))
@@ -28,9 +36,9 @@
             let matrixTable = document.createElement('table');
             matrixTable.style.width = '100%';
             let tbdy = document.createElement('tbody');
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < matrix.length; i++) {
                 let tr = document.createElement('tr');
-                for (j = 0; j < 5; j++) {
+                for (j = 0; j < matrix[i].length; j++) {
                     let td = document.createElement('td');
                     td.innerHTML = '<input type=\'number\' value=\'' + matrix[i][j] + '\' id=\'' + tableName + i + '' + j + '\'>';
                     tr.appendChild(td);
@@ -54,7 +62,7 @@
             let tr = document.createElement('tr');
             for (i = 0; i < 5; i++) {
                 let td = document.createElement('td');
-                td.innerHTML = '<input type=\'number\' value=\''+ weights[i] +'\' id=\'w' + i + '\'>';
+                td.innerHTML = '<input type=\'number\' value=\'' + weights[i] + '\' id=\'w' + i + '\'>';
                 tr.appendChild(td);
             }
             tbdy.appendChild(tr);
@@ -64,6 +72,43 @@
             body.appendChild(h2);
             body.appendChild(matrixTable);
             body.appendChild(document.createElement('hr'));
+        }
+
+        const reducedMatrix = (c, d, matrixElectreOne, matrixElectreTwo, matrixDisagreement) => {
+            let necessaryConditionMatrixOne = [];
+            let necessaryConditionMatrixTwo = [];
+            let sufficientConditionMatrixOne = [];
+            let reducedMatrixElectreOne = [];
+            let reducedMatrixElectreTwo = [];
+
+            for (let i = 0; i < matrixElectreOne.length; i++) {
+                necessaryConditionMatrixOne.push([]);
+                necessaryConditionMatrixTwo.push([]);
+                sufficientConditionMatrixOne.push([]);
+                reducedMatrixElectreOne.push([]);
+                reducedMatrixElectreTwo.push([]);
+
+                for (let j = 0; j < matrixElectreOne.length; j++) {
+                    necessaryConditionMatrixOne[i].push(matrixElectreOne[i][j] > c ? 1 : 0);
+                    necessaryConditionMatrixTwo[i].push(matrixElectreTwo[i][j] > c ? 1 : 0);
+                    sufficientConditionMatrixOne[i].push(matrixDisagreement[i][j] < d ? 1 : 0);
+                    
+                    if (necessaryConditionMatrixOne[i][j] == 1 && sufficientConditionMatrixOne[i][j] == 1) reducedMatrixElectreOne[i].push(1);
+                    else reducedMatrixElectreOne[i].push(0);
+
+                    if (necessaryConditionMatrixTwo[i][j] == 1 && sufficientConditionMatrixOne[i][j] == 1) reducedMatrixElectreTwo[i].push(1);
+                    else reducedMatrixElectreTwo[i].push(0);
+                }
+            }
+
+            return {
+                necessaryConditionMatrixOne,
+                necessaryConditionMatrixTwo,
+                sufficientConditionMatrixOne,
+                sufficientConditionMatrixTwo :sufficientConditionMatrixOne,
+                reducedMatrixElectreOne,
+                reducedMatrixElectreTwo
+            }
         }
 
         const readTask = () => {
@@ -86,7 +131,7 @@
             const data = readTask();
             const matrix = data['matrix'];
             const w = data['weights'];
-            let matrixEletreOne = [], matrixEletreTwo = [], matrixDisagreement = [];
+            let matrixElectreOne = [], matrixEletreTwo = [], matrixDisagreement = [];
 
             const electre = (ax1, ax2, w) => {
                 let kPlus = 0, kEqual = 0, kMinus = 0, wSum = 0;
@@ -129,17 +174,17 @@
             }
 
             for (let i = 0; i < matrix.length; i++) {
-                matrixEletreOne.push([]);
+                matrixElectreOne.push([]);
                 matrixEletreTwo.push([]);
                 matrixDisagreement.push([]);
 
                 for (let j = 0; j < matrix.length; j++) {
                     if (i != j) {
-                        matrixEletreOne[i].push(electre(matrix[i], matrix[j], w)['electreOne']);
+                        matrixElectreOne[i].push(electre(matrix[i], matrix[j], w)['electreOne']);
                         matrixEletreTwo[i].push(electre(matrix[i], matrix[j], w)['electreTwo']);
                         matrixDisagreement[i].push(electre(matrix[i], matrix[j], w)['disagreement']);
                     } else {
-                        matrixEletreOne[i].push(0);
+                        matrixElectreOne[i].push(0);
                         matrixEletreTwo[i].push(0);
                         matrixDisagreement[i].push(0)
                     }
@@ -147,27 +192,42 @@
 
             }
 
-            createTable('Electre 1', 'electre1', false, matrixEletreOne);
+            console.log(matrixElectreOne);
+            createTable('Electre 1', 'electre1', false, matrixElectreOne);
             createTable('Electre 2', 'electre2', false, matrixEletreTwo);
             createTable('Неузгодження', 'disagreement', false, matrixDisagreement);
+
+            let c = document.getElementById('c2').value;
+            let d = document.getElementById('d2').value;
+            let { necessaryConditionMatrixOne, sufficientConditionMatrixOne, reducedMatrixElectreOne} = reducedMatrix(c, d, matrixElectreOne, matrixEletreTwo, matrixDisagreement);
+            createTable('Достатня умова ELECTRE 1', 'sufficientConditionOne', false, sufficientConditionMatrixOne);
+            createTable('Необхідна умова ELECTRE 1', 'necessaryConditionOne', false, necessaryConditionMatrixOne);
+            createTable('Зведена матриця для ELECTRE 1', 'reducedMatrixElectreOne', false, reducedMatrixElectreOne);
+
+            c = document.getElementById('c1').value;
+            d = document.getElementById('d1').value;
+            let { necessaryConditionMatrixTwo, sufficientConditionMatrixTwo, reducedMatrixElectreTwo } = reducedMatrix(c, d, matrixElectreOne, matrixEletreTwo, matrixDisagreement);
+            createTable('Достатня умова ELECTRE 2', 'sufficientConditionTwo', false, sufficientConditionMatrixTwo);
+            createTable('Необхідна умова ELECTRE 2', 'necessaryConditionTwo', false, necessaryConditionMatrixTwo);
+            createTable('Зведена матриця для ELECTRE 2', 'reducedMatrixElectreTwo', false, reducedMatrixElectreTwo);
         }
 
         const startMatrix = [
-            [8, 5, 4, 5, 4],
-            [3, 1, 2, 7, 9],
-            [1, 2, 4, 8, 5],
-            [5, 6, 5, 3, 2],
-            [2, 1, 8, 4, 5],
-            [7, 9, 1, 8, 1],
-            [2, 5, 4, 1, 8]
+            [1, 3, 6, 4, 2],
+            [3, 1, 7, 2, 4],
+            [2, 4, 5, 6, 1],
+            [5, 7, 3, 1, 6],
+            [6, 5, 2, 5, 7],
+            [4, 2, 1, 7, 3],
+            [7, 6, 4, 3, 5]
         ];
 
-        const startWeights = [2, 3, 1, 3, 4];
+        const startWeights = [3, 1, 2, 3, 5];
 
         createTable('Задана матриця', 'matrix', false, startMatrix);
         weightingFactors(startWeights);
 
-        
+
     </script>
 </body>
 

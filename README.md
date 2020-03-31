@@ -1,0 +1,1 @@
+# electre-1-2-method
